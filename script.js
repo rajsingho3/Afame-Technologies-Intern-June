@@ -1,10 +1,19 @@
 document.addEventListener("DOMContentLoaded", function () {
     const display = document.querySelector(".display");
+    const expressionDisplay = document.getElementById("expressionDisplay");
     const buttons = document.querySelectorAll(".btn");
-    const calculator = document.querySelector(".calculator");
-    let currentInput = "";
+    const calculator = document.querySelector(".calculator");    let currentInput = "";
     let operator = "";
-    let previousInput = "";
+    let previousInput = "";    let fullExpression = "";
+    let justCalculated = false;
+
+    function updateExpressionDisplay() {
+        if (fullExpression === "") {
+            expressionDisplay.textContent = "";
+        } else {
+            expressionDisplay.textContent = fullExpression;
+        }
+    }
 
     buttons.forEach(button => {
         button.addEventListener("click", function () {
@@ -13,17 +22,18 @@ document.addEventListener("DOMContentLoaded", function () {
            
             addRippleEffect(this);
             
-            // Add subtle shake animation on click
+           
             this.style.animation = 'buttonClick 0.15s ease-out';
             setTimeout(() => {
                 this.style.animation = '';
-            }, 150);
-
-            if (this.classList.contains("clear")) {
+            }, 150);            if (this.classList.contains("clear")) {
                 currentInput = "";
                 operator = "";
                 previousInput = "";
+                fullExpression = "";
+                justCalculated = false;
                 display.value = "";
+                updateExpressionDisplay();
                 
                 
                 display.style.animation = 'clearAnimation 0.3s ease-out';
@@ -34,20 +44,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     currentInput = currentInput.slice(0, -1);
                     if (operator && previousInput) {
                         display.value = previousInput + " " + operator + " " + currentInput;
+                        fullExpression = previousInput + " " + operator + " " + currentInput;
                     } else {
                         display.value = currentInput;
+                        fullExpression = currentInput;
                     }
+                    updateExpressionDisplay();
                     
-                    // Add backspace animation
+                 
                     this.style.animation = 'backspaceAnimation 0.2s ease-out';
                     setTimeout(() => {
                         this.style.animation = '';
                     }, 200);
-                }
-            } else if (this.classList.contains("operator")) {
-                if (currentInput !== "") {
-                    if (previousInput !== "" && operator !== "") {
-                        // Calculate previous operation first
+                }            } else if (this.classList.contains("operator")) {
+                if (currentInput !== "" || justCalculated) {
+                    if (previousInput !== "" && operator !== "" && !justCalculated) {
+                   
                         currentInput = calculate(previousInput, currentInput, operator);
                         display.value = currentInput;
                     }
@@ -56,27 +68,39 @@ document.addEventListener("DOMContentLoaded", function () {
                     currentInput = "";
                     display.value = previousInput + " " + operator + " ";
                     
-                    // Add operator feedback
+                    if (justCalculated) {
+                        // Continue from previous result
+                        fullExpression = previousInput + " " + operator + " ";
+                        justCalculated = false;
+                    } else {
+                        fullExpression = previousInput + " " + operator + " ";
+                    }
+                    updateExpressionDisplay();
+                    
+                   
                     this.style.transform = 'scale(1.1)';
                     setTimeout(() => {
                         this.style.transform = '';
                     }, 200);
                 }} else if (this.classList.contains("equal")) {
                 if (previousInput !== "" && operator !== "" && currentInput !== "") {
-                    // Show complete calculation first
-                    display.value = previousInput + " " + operator + " " + currentInput + " =";
                     
-                    // Add calculating animation
+                    fullExpression = previousInput + " " + operator + " " + currentInput + " = ";
+                    
+                   
                     calculator.classList.add('calculating');
-                    
-                    setTimeout(() => {
-                        currentInput = calculate(previousInput, currentInput, operator);
+                      setTimeout(() => {
+                        const result = calculate(previousInput, currentInput, operator);
+                        fullExpression += result;
+                        currentInput = result;
                         display.value = currentInput;
                         operator = "";
                         previousInput = "";
+                        justCalculated = true;
+                        updateExpressionDisplay();
                         calculator.classList.remove('calculating');
                         
-                        // Add result animation
+                     
                         display.style.animation = 'resultAnimation 0.5s ease-out';
                         setTimeout(() => {
                             display.style.animation = '';
@@ -84,33 +108,57 @@ document.addEventListener("DOMContentLoaded", function () {
                     }, 300);
                 }            } else if (this.classList.contains("dot")) {
                 
-                if (currentInput.indexOf('.') === -1) {
+                if (justCalculated) {
+                   
+                    currentInput = "0.";
+                    fullExpression = "0.";
+                    justCalculated = false;
+                } else if (currentInput.indexOf('.') === -1) {
                     if (currentInput === "") {
                         currentInput = "0.";
                     } else {
                         currentInput += ".";
                     }
                     if (operator && previousInput) {
-                        display.value = previousInput + " " + operator + " " + currentInput;
+                        fullExpression = previousInput + " " + operator + " " + currentInput;
                     } else {
-                        display.value = currentInput;
+                        fullExpression = currentInput;
                     }
-                    
-                    
-                    this.style.animation = 'dotAnimation 0.2s ease-out';
-                    setTimeout(() => {
-                        this.style.animation = '';
-                    }, 200);
                 }
-            } else {
-                currentInput += value;
+                
                 if (operator && previousInput) {
                     display.value = previousInput + " " + operator + " " + currentInput;
                 } else {
                     display.value = currentInput;
                 }
+                updateExpressionDisplay();
                 
-                // Add typing animation
+                  this.style.animation = 'dotAnimation 0.2s ease-out';
+                setTimeout(() => {
+                    this.style.animation = '';
+                }, 200);
+            } else {
+                
+                if (justCalculated) {
+                    currentInput = value;
+                    fullExpression = value;
+                    justCalculated = false;
+                } else {
+                    currentInput += value;
+                    if (operator && previousInput) {
+                        fullExpression = previousInput + " " + operator + " " + currentInput;
+                    } else {
+                        fullExpression = currentInput;
+                    }
+                }
+                
+                if (operator && previousInput) {
+                    display.value = previousInput + " " + operator + " " + currentInput;
+                } else {
+                    display.value = currentInput;
+                }
+                updateExpressionDisplay();
+                
                 display.style.animation = 'typingAnimation 0.2s ease-out';
                 setTimeout(() => {
                     display.style.animation = '';
@@ -119,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Ripple effect function
+
     function addRippleEffect(button) {
         const ripple = document.createElement('span');
         const rect = button.getBoundingClientRect();
@@ -141,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
         num1 = parseFloat(num1);
         num2 = parseFloat(num2);
 
-        // Check for invalid numbers
+      
         if (isNaN(num1) || isNaN(num2)) {
             showError();
             return "Error";
@@ -162,17 +210,17 @@ document.addEventListener("DOMContentLoaded", function () {
             default: result = num2;
         }
         
-        // Check for infinity or NaN results
+      
         if (!isFinite(result)) {
             showError();
             return "Error";
         }
         
-        // Round to avoid floating point precision issues
+      
         return Math.round(result * 1000000000) / 1000000000;
     }
     
-    // Error display function
+  
     function showError() {
         display.classList.add('error');
         setTimeout(() => {
@@ -180,7 +228,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000);
     }
 
-    // Add keyboard support with animations
     document.addEventListener('keydown', function(event) {
         const key = event.key;
         let button = null;
@@ -211,15 +258,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 100);
         }    });
     
-    // Theme toggle functionality
+    
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.querySelector('.theme-icon');
     
-    // Check for saved theme preference or default to light mode
+ 
     const currentTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
     
-    // Update icon based on theme
+   
     if (currentTheme === 'dark') {
         themeIcon.textContent = '☀️';
     } else {
@@ -233,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         
-        // Update icon with animation
+        
         this.style.animation = 'themeSwitch 0.3s ease-out';
         setTimeout(() => {
             if (newTheme === 'dark') {
